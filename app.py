@@ -24,6 +24,12 @@ st.markdown("""
     .stSlider label, .stSelectbox label, .stRadio label { 
         font-size: 26px !important; font-weight: bold; 
     }
+    /* 注意書きのスタイル */
+    .android-note {
+        background-color: #fff3cd; color: #856404; padding: 15px;
+        border-radius: 10px; border: 1px solid #ffeeba;
+        font-size: 18px !important; margin-bottom: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -33,6 +39,14 @@ st.image(LOGO_URL, width=300)
 st.markdown("### [👉 使い方・最新情報は公式サイトへ](http://bsdiyai.com/)")
 
 st.title("🎨 プロ仕様・スタンプ一括透過")
+
+# --- 【追加】Androidユーザー向けの注意書き ---
+st.markdown("""
+    <div class="android-note">
+        📱 <b>Androidの方へ：</b><br>
+        画像を選んだあと、画面右上の<b>「完了」</b>や<b>「選択」</b>を押してください。そうすると実行ボタンが表示されます。
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- 3. パラメータ設定 ---
 with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
@@ -97,7 +111,10 @@ def process_ultimate(content, i):
 # --- 4. メイン処理 ---
 uploaded_files = st.file_uploader("画像をまとめてアップロード", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
 
-if uploaded_files:
+# 【修正】ファイルが選ばれたら成功メッセージとボタンを出す
+if uploaded_files is not None and len(uploaded_files) > 0:
+    st.success(f"✅ {len(uploaded_files)}枚の画像を受け取りました！準備OKです。")
+    
     if st.button("🚀 一括変換＆ダウンロード準備"):
         if os.path.exists(OUTPUT_DIR): shutil.rmtree(OUTPUT_DIR)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -111,7 +128,7 @@ if uploaded_files:
                 res.save(f"{OUTPUT_DIR}/stamp_{i:02d}.png", "PNG", optimize=True)
                 processed_imgs.append(res)
                 
-                # --- 【修正点】背景色を画像に直接適用するプレビュー ---
+                # 背景色付きのプレビュー
                 st.markdown(
                     f"""
                     <div style="background-color: {preview_bg}; padding: 20px; border-radius: 10px; display: inline-block; line-height: 0;">
