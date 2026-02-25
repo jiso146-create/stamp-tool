@@ -36,9 +36,9 @@ st.markdown("""
 # --- 2. ロゴとサイト誘導 ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
-st.markdown("### [👉 使い方・最新情報は公式サイトへ](http://bsdiyai.com/)")
+st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
 
-st.title("🎨 プロ仕様・スタンプ一括透過")
+st.title("🎨 スタンプ一括透過")
 
 # --- 3. スマホ操作のガイド（最重要） ---
 st.markdown("""
@@ -46,7 +46,8 @@ st.markdown("""
         <b>📱 スマホで複数選ぶコツ</b><br>
         1. 「Browse files」を押し、1枚目を<b>長押し</b>します。<br>
         2. 残りを選び、画面右上の<b>「選択」「完了」または「開く」</b>を押すと、下にボタンが出ます。<br>
-        ※Genspark等の特殊なフォルダで選べない場合は、一度「画像」フォルダから選んでみてください。
+        ※Genspark等の特殊なフォルダで選べない場合は、一度「画像」フォルダから選んでみてください。<br>
+        だめなら一枚づつ追加して
     </div>
     """, unsafe_allow_html=True)
 
