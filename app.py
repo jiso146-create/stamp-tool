@@ -10,7 +10,7 @@ def st_image_to_base64(img):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- 1. ページ設定と老眼対策CSS ---
+# --- 1. ページ設定とデザイン（老眼＆スマホ最適化） ---
 st.set_page_config(page_title="LINEスタンプ透過くん", page_icon="🎨")
 
 st.markdown("""
@@ -24,10 +24,10 @@ st.markdown("""
     .stSlider label, .stSelectbox label, .stRadio label { 
         font-size: 26px !important; font-weight: bold; 
     }
-    /* 注意書きのスタイル */
-    .android-note {
-        background-color: #fff3cd; color: #856404; padding: 15px;
-        border-radius: 10px; border: 1px solid #ffeeba;
+    /* ガイドメッセージのスタイル */
+    .guide-box {
+        background-color: #e3f2fd; color: #0d47a1; padding: 15px;
+        border-radius: 10px; border: 1px solid #bbdefb;
         font-size: 18px !important; margin-bottom: 20px;
     }
     </style>
@@ -40,15 +40,17 @@ st.markdown("### [👉 使い方・最新情報は公式サイトへ](http://bsd
 
 st.title("🎨 プロ仕様・スタンプ一括透過")
 
-# --- 【追加】Androidユーザー向けの注意書き ---
+# --- 3. スマホ操作のガイド（最重要） ---
 st.markdown("""
-    <div class="android-note">
-        📱 <b>Androidの方へ：</b><br>
-        画像を選んだあと、画面右上の<b>「完了」</b>や<b>「選択」</b>を押してください。そうすると実行ボタンが表示されます。
+    <div class="guide-box">
+        <b>📱 スマホで複数選ぶコツ</b><br>
+        1. 「Browse files」を押し、1枚目を<b>長押し</b>します。<br>
+        2. 残りを選び、画面右上の<b>「選択」「完了」または「開く」</b>を押すと、下にボタンが出ます。<br>
+        ※Genspark等の特殊なフォルダで選べない場合は、一度「画像」フォルダから選んでみてください。
     </div>
     """, unsafe_allow_html=True)
 
-# --- 3. パラメータ設定 ---
+# --- 4. パラメータ設定 ---
 with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
@@ -108,12 +110,16 @@ def process_ultimate(content, i):
     except Exception as e:
         return None
 
-# --- 4. メイン処理 ---
-uploaded_files = st.file_uploader("画像をまとめてアップロード", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
+# --- 5. メイン処理 ---
+# 【重要】Androidでも複数選択を促す文言に修正
+uploaded_files = st.file_uploader(
+    "画像をまとめてアップロード（1枚目を長押し！）", 
+    type=["png", "jpg", "jpeg", "webp"], 
+    accept_multiple_files=True
+)
 
-# 【修正】ファイルが選ばれたら成功メッセージとボタンを出す
 if uploaded_files is not None and len(uploaded_files) > 0:
-    st.success(f"✅ {len(uploaded_files)}枚の画像を受け取りました！準備OKです。")
+    st.success(f"✅ {len(uploaded_files)}枚の画像を受け取りました！")
     
     if st.button("🚀 一括変換＆ダウンロード準備"):
         if os.path.exists(OUTPUT_DIR): shutil.rmtree(OUTPUT_DIR)
@@ -128,7 +134,7 @@ if uploaded_files is not None and len(uploaded_files) > 0:
                 res.save(f"{OUTPUT_DIR}/stamp_{i:02d}.png", "PNG", optimize=True)
                 processed_imgs.append(res)
                 
-                # 背景色付きのプレビュー
+                # 背景色を画像に直接適用するプレビュー
                 st.markdown(
                     f"""
                     <div style="background-color: {preview_bg}; padding: 20px; border-radius: 10px; display: inline-block; line-height: 0;">
