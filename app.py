@@ -2,6 +2,13 @@ import streamlit as st
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
+import base64
+
+# --- 画像をプレビュー用に変換する魔法の関数 ---
+def st_image_to_base64(img):
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
 # --- 1. ページ設定と老眼対策CSS ---
 st.set_page_config(page_title="LINEスタンプ透過くん", page_icon="🎨")
@@ -17,9 +24,6 @@ st.markdown("""
     .stSlider label, .stSelectbox label, .stRadio label { 
         font-size: 26px !important; font-weight: bold; 
     }
-    .preview-box {
-        padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -32,7 +36,6 @@ st.title("🎨 プロ仕様・スタンプ一括透過")
 
 # --- 3. パラメータ設定 ---
 with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
-    # 【追加】背景色の選択機能
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
         ["マゼンタ (桃)", "ライム (緑)", "シアン (水色)", "イエロー (黄)"]
@@ -68,7 +71,6 @@ def process_ultimate(content, i):
                 ImageDraw.floodfill(img, p, (0,0,0,0), thresh=THRESHOLD)
         else:
             data = np.array(img)
-            # 選択したTARGET_RGBとの距離で判定
             mask = np.sqrt(np.sum((data[:,:,:3] - TARGET_RGB)**2, axis=2)) < THRESHOLD
             data[mask] = [0,0,0,0]
             img = Image.fromarray(data)
@@ -108,8 +110,17 @@ if uploaded_files:
             if res:
                 res.save(f"{OUTPUT_DIR}/stamp_{i:02d}.png", "PNG", optimize=True)
                 processed_imgs.append(res)
-                st.markdown(f'<div class="preview-box" style="background-color:{preview_bg};"><p style="font-size:16px; color:#666;">No.{i} プレビュー</p></div>', unsafe_allow_html=True)
-                st.image(res, width=200)
+                
+                # --- 【修正点】背景色を画像に直接適用するプレビュー ---
+                st.markdown(
+                    f"""
+                    <div style="background-color: {preview_bg}; padding: 20px; border-radius: 10px; display: inline-block; line-height: 0;">
+                        <img src="data:image/png;base64,{st_image_to_base64(res)}" width="200">
+                    </div>
+                    <p style="font-size:16px; color:#666;">No.{i} プレビュー</p>
+                    """,
+                    unsafe_allow_html=True
+                )
             progress_bar.progress(i / len(uploaded_files))
 
         if processed_imgs:
