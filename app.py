@@ -4,31 +4,34 @@ from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
 import base64
 
-# --- 1. ページ設定 ---
+# --- 1. ページ構成（一番最初に書くこと） ---
 st.set_page_config(
     page_title="LINEスタンプ透過くん", 
     page_icon="🎨",
     layout="centered"
 )
 
-# 【強化版】右下の王冠マーク含め、あらゆるStreamlit要素を物理的に消すCSS
+# --- 2. 徹底的にStreamlit要素を消去するCSS（最新のクラス名に対応） ---
 st.markdown("""
     <style>
-    /* 標準メニュー・ヘッダー・フッターを非表示 */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
+    /* 1. 標準メニュー・ヘッダー・フッターを物理的に削除 */
+    header, footer, #MainMenu {visibility: hidden !important; display: none !important;}
     
-    /* 右下の王冠マーク（Streamlit Cloudのバッジ）を強制非表示 */
-    .stAppDeployButton {display: none !important;}
-    #viewer-badge {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
+    /* 2. 右下の王冠・デプロイボタン・アクションボタンを強制非表示 */
+    .stAppDeployButton, .stDeployButton, #viewer-badge, .stActionButton, [data-testid="stStatusWidget"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
     
-    /* スマホ・老眼対策デザイン */
+    /* 3. 画面上部の余計な余白を削る */
+    [data-testid="stHeader"] {display: none !important;}
+    .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
+
+    /* 4. 既存の「老眼＆スマホ最適化」デザイン */
     html, body, [class*="css"] { font-size: 24px !important; }
     .stButton>button {
         width: 100%; height: 100px; font-size: 32px !important;
-        font-weight: bold; background-color: #00b900; color: white;
+        font-weight: bold; background-color: #00b900 !important; color: white !important;
         border-radius: 15px; margin-top: 20px;
     }
     .stSlider label, .stSelectbox label, .stRadio label { 
@@ -39,17 +42,16 @@ st.markdown("""
         border-radius: 10px; border: 1px solid #bbdefb;
         font-size: 18px !important; margin-bottom: 20px;
     }
-    .block-container {padding-top: 1rem;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. 補助関数 ---
+# --- 3. 補助関数 ---
 def st_image_to_base64(img):
     buffered = io.BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- 3. メインコンテンツ ---
+# --- 4. メインコンテンツ ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
 st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
@@ -60,12 +62,13 @@ st.markdown("""
     <div class="guide-box">
         <b>📱 スマホで複数選ぶコツ</b><br>
         1. 「Browse files」を押し、1枚目を<b>長押し</b>します。<br>
-        2. 残りを選び、画面右上の<b>「選択」または「完了」</b>を押してください。
+        2. 残りを選び、画面右上の<b>「選択」または「完了」</b>を押してください。<br>
+        ※一枚づつ追加してもOKです。
     </div>
     """, unsafe_allow_html=True)
 
-# --- 4. パラメータ設定 ---
-with st.expander("⚙️ 設定"):
+# --- 5. パラメータ設定 ---
+with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
         ["マゼンタ (桃)", "ライム (緑)", "シアン (水色)", "イエロー (黄)"]
@@ -83,10 +86,12 @@ with st.expander("⚙️ 設定"):
     ERODE = st.slider("縁を削る量", 0, 3, 1)
     SMOOTH = st.slider("なめらかさ", 0, 3, 1)
 
+# 確認用の背景色
 bg_choice = st.radio("仕上がり確認用の背景色", ["透過", "チャット画面風", "黒"], horizontal=True)
 bg_map = {"透過": "#ffffff", "チャット画面風": "#7494C0", "黒": "#333333"}
 preview_bg = bg_map[bg_choice]
 
+# 固定設定
 STAMP_SIZE = (370, 320)
 MARGIN = 10
 OUTPUT_DIR = "stamps"
@@ -122,7 +127,7 @@ def process_ultimate(content, i):
     except:
         return None
 
-# --- 5. メイン処理 ---
+# --- 6. メイン処理 ---
 uploaded_files = st.file_uploader(
     "画像をアップロード", 
     type=["png", "jpg", "jpeg", "webp"], 
