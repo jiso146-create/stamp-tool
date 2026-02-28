@@ -4,17 +4,23 @@ from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
 import base64
 
-# --- 画像をプレビュー用に変換する魔法の関数 ---
-def st_image_to_base64(img):
-    buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
+# --- 1. ページ設定（一番最初に記述。マークを消す設定も統合） ---
+st.set_page_config(
+    page_title="LINEスタンプ透過くん", 
+    page_icon="🎨",
+    layout="centered" # 仕事用ツールとして中央寄せで安定させる
+)
 
-# --- 1. ページ設定とデザイン（老眼＆スマホ最適化） ---
-st.set_page_config(page_title="LINEスタンプ透過くん", page_icon="🎨")
-
+# CSSを注入して Streamlitのヘッダー、フッター、メニューをすべて非表示にする
 st.markdown("""
     <style>
+    /* 1. Streamlit標準のUIを非表示 */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    .embeddedAppMetaInfoBar_container__D9p6t {display: none;} /* 下部のツールバー対策 */
+
+    /* 2. 老眼＆スマホ最適化（既存のデザインを継承） */
     html, body, [class*="css"] { font-size: 24px !important; }
     .stButton>button {
         width: 100%; height: 100px; font-size: 32px !important;
@@ -24,23 +30,30 @@ st.markdown("""
     .stSlider label, .stSelectbox label, .stRadio label { 
         font-size: 26px !important; font-weight: bold; 
     }
-    /* ガイドメッセージのスタイル */
     .guide-box {
         background-color: #e3f2fd; color: #0d47a1; padding: 15px;
         border-radius: 10px; border: 1px solid #bbdefb;
         font-size: 18px !important; margin-bottom: 20px;
     }
+    /* 上部の余白を調整 */
+    .block-container {padding-top: 1rem;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. ロゴとサイト誘導 ---
+# --- 2. 画像をプレビュー用に変換する魔法の関数 ---
+def st_image_to_base64(img):
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
+# --- 3. ロゴとサイト誘導 ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
 st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
 
 st.title("🎨 スタンプ一括透過")
 
-# --- 3. スマホ操作のガイド（最重要） ---
+# --- 4. スマホ操作のガイド（最重要） ---
 st.markdown("""
     <div class="guide-box">
         <b>📱 スマホで複数選ぶコツ</b><br>
@@ -51,7 +64,7 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 
-# --- 4. パラメータ設定 ---
+# --- 5. パラメータ設定 ---
 with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
@@ -62,7 +75,7 @@ with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
         "ライム (緑)": (0, 255, 0),
         "シアン (水色)": (0, 255, 255),
         "イエロー (黄)": (255, 255, 0)
-    }
+    )
     TARGET_RGB = color_dict[color_name]
 
     MODE = st.selectbox("背景の消し方", ["AllPixels", "FloodFill"], index=0)
@@ -111,8 +124,7 @@ def process_ultimate(content, i):
     except Exception as e:
         return None
 
-# --- 5. メイン処理 ---
-# 【重要】Androidでも複数選択を促す文言に修正
+# --- 6. メイン処理 ---
 uploaded_files = st.file_uploader(
     "画像をまとめてアップロード（1枚目を長押し！）", 
     type=["png", "jpg", "jpeg", "webp"], 
