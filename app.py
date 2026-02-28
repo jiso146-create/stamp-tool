@@ -4,19 +4,27 @@ from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
 import base64
 
-# --- 1. ページ設定（一番最初） ---
+# --- 1. ページ設定 ---
 st.set_page_config(
     page_title="LINEスタンプ透過くん", 
     page_icon="🎨",
     layout="centered"
 )
 
-# CSSでマークを消す
+# 【強化版】右下の王冠マーク含め、あらゆるStreamlit要素を物理的に消すCSS
 st.markdown("""
     <style>
+    /* 標準メニュー・ヘッダー・フッターを非表示 */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
+    
+    /* 右下の王冠マーク（Streamlit Cloudのバッジ）を強制非表示 */
+    .stAppDeployButton {display: none !important;}
+    #viewer-badge {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    
+    /* スマホ・老眼対策デザイン */
     html, body, [class*="css"] { font-size: 24px !important; }
     .stButton>button {
         width: 100%; height: 100px; font-size: 32px !important;
@@ -56,13 +64,12 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 
-# --- 4. パラメータ設定（ここがエラーの原因箇所でした） ---
+# --- 4. パラメータ設定 ---
 with st.expander("⚙️ 設定"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
         ["マゼンタ (桃)", "ライム (緑)", "シアン (水色)", "イエロー (黄)"]
     )
-    # カッコ { } の閉じを正確に修正
     color_dict = {
         "マゼンタ (桃)": (255, 0, 255),
         "ライム (緑)": (0, 255, 0),
