@@ -4,23 +4,19 @@ from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
 import base64
 
-# --- 1. ページ設定（一番最初に記述。マークを消す設定も統合） ---
+# --- 1. ページ設定（一番最初） ---
 st.set_page_config(
     page_title="LINEスタンプ透過くん", 
     page_icon="🎨",
-    layout="centered" # 仕事用ツールとして中央寄せで安定させる
+    layout="centered"
 )
 
-# CSSを注入して Streamlitのヘッダー、フッター、メニューをすべて非表示にする
+# CSSでマークを消す
 st.markdown("""
     <style>
-    /* 1. Streamlit標準のUIを非表示 */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
-    .embeddedAppMetaInfoBar_container__D9p6t {display: none;} /* 下部のツールバー対策 */
-
-    /* 2. 老眼＆スマホ最適化（既存のデザインを継承） */
     html, body, [class*="css"] { font-size: 24px !important; }
     .stButton>button {
         width: 100%; height: 100px; font-size: 32px !important;
@@ -35,47 +31,44 @@ st.markdown("""
         border-radius: 10px; border: 1px solid #bbdefb;
         font-size: 18px !important; margin-bottom: 20px;
     }
-    /* 上部の余白を調整 */
     .block-container {padding-top: 1rem;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. 画像をプレビュー用に変換する魔法の関数 ---
+# --- 2. 補助関数 ---
 def st_image_to_base64(img):
     buffered = io.BytesIO()
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- 3. ロゴとサイト誘導 ---
+# --- 3. メインコンテンツ ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
 st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
 
 st.title("🎨 スタンプ一括透過")
 
-# --- 4. スマホ操作のガイド（最重要） ---
 st.markdown("""
     <div class="guide-box">
         <b>📱 スマホで複数選ぶコツ</b><br>
         1. 「Browse files」を押し、1枚目を<b>長押し</b>します。<br>
-        2. 残りを選び、画面右上の<b>「選択」「完了」または「開く」</b>を押すと、下にボタンが出ます。<br>
-        ※Genspark等の特殊なフォルダで選べない場合は、一度「画像」フォルダから選んでみてください。<br>
-        だめなら一枚づつ追加して
+        2. 残りを選び、画面右上の<b>「選択」または「完了」</b>を押してください。
     </div>
     """, unsafe_allow_html=True)
 
-# --- 5. パラメータ設定 ---
-with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
+# --- 4. パラメータ設定（ここがエラーの原因箇所でした） ---
+with st.expander("⚙️ 設定"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
         ["マゼンタ (桃)", "ライム (緑)", "シアン (水色)", "イエロー (黄)"]
     )
+    # カッコ { } の閉じを正確に修正
     color_dict = {
         "マゼンタ (桃)": (255, 0, 255),
         "ライム (緑)": (0, 255, 0),
         "シアン (水色)": (0, 255, 255),
         "イエロー (黄)": (255, 255, 0)
-    )
+    }
     TARGET_RGB = color_dict[color_name]
 
     MODE = st.selectbox("背景の消し方", ["AllPixels", "FloodFill"], index=0)
@@ -83,12 +76,10 @@ with st.expander("⚙️ 設定（背景色に合わせて変えてね）"):
     ERODE = st.slider("縁を削る量", 0, 3, 1)
     SMOOTH = st.slider("なめらかさ", 0, 3, 1)
 
-# 確認用の背景色
 bg_choice = st.radio("仕上がり確認用の背景色", ["透過", "チャット画面風", "黒"], horizontal=True)
 bg_map = {"透過": "#ffffff", "チャット画面風": "#7494C0", "黒": "#333333"}
 preview_bg = bg_map[bg_choice]
 
-# 固定設定
 STAMP_SIZE = (370, 320)
 MARGIN = 10
 OUTPUT_DIR = "stamps"
@@ -121,23 +112,21 @@ def process_ultimate(content, i):
         offset = ((STAMP_SIZE[0] - cropped.width) // 2, (STAMP_SIZE[1] - cropped.height) // 2)
         canvas.paste(cropped, offset)
         return canvas
-    except Exception as e:
+    except:
         return None
 
-# --- 6. メイン処理 ---
+# --- 5. メイン処理 ---
 uploaded_files = st.file_uploader(
-    "画像をまとめてアップロード（1枚目を長押し！）", 
+    "画像をアップロード", 
     type=["png", "jpg", "jpeg", "webp"], 
     accept_multiple_files=True
 )
 
-if uploaded_files is not None and len(uploaded_files) > 0:
-    st.success(f"✅ {len(uploaded_files)}枚の画像を受け取りました！")
-    
+if uploaded_files:
+    st.success(f"✅ {len(uploaded_files)}枚受け取りました")
     if st.button("🚀 一括変換＆ダウンロード準備"):
         if os.path.exists(OUTPUT_DIR): shutil.rmtree(OUTPUT_DIR)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        
         processed_imgs = []
         progress_bar = st.progress(0)
         
@@ -146,32 +135,22 @@ if uploaded_files is not None and len(uploaded_files) > 0:
             if res:
                 res.save(f"{OUTPUT_DIR}/stamp_{i:02d}.png", "PNG", optimize=True)
                 processed_imgs.append(res)
-                
-                # 背景色を画像に直接適用するプレビュー
-                st.markdown(
-                    f"""
+                st.markdown(f"""
                     <div style="background-color: {preview_bg}; padding: 20px; border-radius: 10px; display: inline-block; line-height: 0;">
                         <img src="data:image/png;base64,{st_image_to_base64(res)}" width="200">
                     </div>
-                    <p style="font-size:16px; color:#666;">No.{i} プレビュー</p>
-                    """,
-                    unsafe_allow_html=True
-                )
+                    """, unsafe_allow_html=True)
             progress_bar.progress(i / len(uploaded_files))
 
         if processed_imgs:
-            processed_imgs[0].resize((240, 240)).save(f"{OUTPUT_DIR}/main.png")
-            processed_imgs[0].resize((96, 74)).save(f"{OUTPUT_DIR}/tab.png")
-            
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zf:
                 for root, _, filenames in os.walk(OUTPUT_DIR):
                     for filename in filenames:
                         zf.write(os.path.join(root, filename), filename)
             
-            st.success("✨ すべての処理が完了しました！")
             st.download_button(
-                label="🎁 完成ファイルをまとめて保存",
+                label="🎁 完成ファイルを保存",
                 data=zip_buffer.getvalue(),
                 file_name="STAMP_DONE.zip",
                 mime="application/zip"
