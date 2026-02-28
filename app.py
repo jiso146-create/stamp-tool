@@ -4,30 +4,31 @@ from PIL import Image, ImageDraw, ImageFilter
 import io, os, shutil, zipfile
 import base64
 
-# --- 1. ページ構成（一番最初に書くこと） ---
+# --- 1. ページ構成（アイコンとタイトルを設定） ---
+# page_iconに画像のURLを指定することで、タブのアイコンが変わります
 st.set_page_config(
     page_title="LINEスタンプ透過くん", 
-    page_icon="🎨",
+    page_icon="http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg",
     layout="centered"
 )
 
-# --- 2. 徹底的にStreamlit要素を消去するCSS（最新のクラス名に対応） ---
+# --- 2. 徹底的にStreamlit要素を消去するCSS ---
 st.markdown("""
     <style>
     /* 1. 標準メニュー・ヘッダー・フッターを物理的に削除 */
     header, footer, #MainMenu {visibility: hidden !important; display: none !important;}
     
-    /* 2. 右下の王冠・デプロイボタン・アクションボタンを強制非表示 */
+    /* 2. 右下の王冠・デプロイボタンなどを強制非表示 */
     .stAppDeployButton, .stDeployButton, #viewer-badge, .stActionButton, [data-testid="stStatusWidget"] {
         display: none !important;
         visibility: hidden !important;
     }
     
-    /* 3. 画面上部の余計な余白を削る */
+    /* 3. 余白調整 */
     [data-testid="stHeader"] {display: none !important;}
     .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
 
-    /* 4. 既存の「老眼＆スマホ最適化」デザイン */
+    /* 4. デザイン最適化 */
     html, body, [class*="css"] { font-size: 24px !important; }
     .stButton>button {
         width: 100%; height: 100px; font-size: 32px !important;
@@ -41,6 +42,13 @@ st.markdown("""
         background-color: #e3f2fd; color: #0d47a1; padding: 15px;
         border-radius: 10px; border: 1px solid #bbdefb;
         font-size: 18px !important; margin-bottom: 20px;
+    }
+    /* 宣伝用テキストのスタイル */
+    .credit {
+        font-size: 14px !important;
+        color: #999;
+        text-align: center;
+        margin-top: 50px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -167,3 +175,10 @@ if uploaded_files:
                 file_name="STAMP_DONE.zip",
                 mime="application/zip"
             )
+
+# --- 7. フッター（宣伝） ---
+st.markdown("""
+    <div class="credit">
+        武術創造 DIY・AI研究所
+    </div>
+    """, unsafe_allow_html=True)
