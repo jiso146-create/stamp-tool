@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- 2. CSS設定（デザインと王冠消去） ---
+# --- 2. CSS設定（徹底消去） ---
 st.markdown("""
     <style>
     header, footer, #MainMenu {visibility: hidden !important; display: none !important;}
@@ -46,15 +46,27 @@ def st_image_to_base64(img):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-# --- 4. メインコンテンツ ---
+# --- 4. メインヘッダー ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
 st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
-
 st.title("🎨 スタンプ一括透過")
 
-# --- 5. パラメータ設定（追加オプション含む） ---
-with st.expander("⚙️ 透過の精度設定（マゼンタ残り対策）"):
+# --- 5. 【NEW!】画像アップロード（最優先） ---
+uploaded_files = st.file_uploader(
+    "画像をアップロード（複数選べます）", 
+    type=["png", "jpg", "jpeg", "webp"], 
+    accept_multiple_files=True
+)
+
+# --- 6. 【NEW!】仕上がり確認用の背景選択 ---
+st.write("### 📺 仕上がりのチェック")
+bg_choice = st.radio("背景を切り替えて確認：", ["チャット画面風", "透過", "黒"], horizontal=True)
+bg_map = {"透過": "#ffffff", "チャット画面風": "#7494C0", "黒": "#333333"}
+preview_bg = bg_map[bg_choice]
+
+# --- 7. 設定（エクスパンダーで畳む） ---
+with st.expander("⚙️ こだわり設定（マゼンタが残る時はこちら）"):
     color_name = st.selectbox(
         "AIで作った背景色は何色？", 
         ["マゼンタ (桃)", "ライム (緑)", "シアン (水色)", "イエロー (黄)"]
@@ -64,20 +76,13 @@ with st.expander("⚙️ 透過の精度設定（マゼンタ残り対策）"):
         "シアン (水色)": (0, 255, 255), "イエロー (黄)": (255, 255, 0)
     }
     TARGET_RGB = color_dict[color_name]
-
     MODE = st.selectbox("背景の消し方", ["AllPixels", "FloodFill"], index=0)
     THRESHOLD = st.slider("透過の強さ", 0, 255, 150)
     
     st.write("---")
-    st.write("✨ **境界の仕上がり調整**")
-    USE_MATTING = st.checkbox("境界を自動で馴染ませる (推奨)", value=True)
-    ERODE = st.slider("縁を削り取る (Erode)", 0, 5, 1, help="マゼンタが残る場合は1〜2に設定")
-    SMOOTH = st.slider("全体のなめらかさ", 0, 3, 1)
-
-# 確認用の背景色
-bg_choice = st.radio("仕上がり確認用の背景色", ["透過", "チャット画面風", "黒"], horizontal=True)
-bg_map = {"透過": "#ffffff", "チャット画面風": "#7494C0", "黒": "#333333"}
-preview_bg = bg_map[bg_choice]
+    USE_MATTING = st.checkbox("境界を自動で馴染ませる", value=True)
+    ERODE = st.slider("縁を削り取る (Erode)", 0, 5, 1)
+    SMOOTH = st.slider("なめらかさ", 0, 3, 1)
 
 # 固定設定
 STAMP_SIZE = (370, 320)
@@ -87,59 +92,33 @@ OUTPUT_DIR = "stamps"
 def process_ultimate(content, i):
     try:
         img = Image.open(content).convert("RGBA")
-        
-        # 1. 透過処理
         if MODE == "FloodFill":
             for p in [(0,0), (img.width-1,0), (0,img.height-1), (img.width-1,img.height-1)]:
                 ImageDraw.floodfill(img, p, (0,0,0,0), thresh=THRESHOLD)
         else:
             data = np.array(img)
-            # 指定色との距離を計算
             diff = np.sqrt(np.sum((data[:,:,:3] - TARGET_RGB)**2, axis=2))
             mask = diff < THRESHOLD
             data[mask] = [0,0,0,0]
             img = Image.fromarray(data)
-
-        # 2. 境界の補正 (Alpha Matting & Erode)
         r, g, b, a = img.split()
-        
-        # 境界を馴染ませる (Alpha Matting風処理)
-        if USE_MATTING:
-            # 輪郭付近のアルファ値を少しぼかして馴染ませる
-            a = a.filter(ImageFilter.SMOOTH_MORE)
-        
-        # 物理的に削る (Erode)
-        if ERODE > 0:
-            # 最小値フィルタでアルファを収縮させる
-            a = a.filter(ImageFilter.MinFilter(ERODE * 2 + 1))
-        
-        # 全体の平滑化
-        if SMOOTH > 0:
-            a = a.filter(ImageFilter.GaussianBlur(SMOOTH * 0.5))
-            
+        if USE_MATTING: a = a.filter(ImageFilter.SMOOTH_MORE)
+        if ERODE > 0: a = a.filter(ImageFilter.MinFilter(ERODE * 2 + 1))
+        if SMOOTH > 0: a = a.filter(ImageFilter.GaussianBlur(SMOOTH * 0.5))
         img = Image.merge("RGBA", (r, g, b, a))
-
-        # 3. リサイズとキャンバス配置
         bbox = img.getbbox()
         if not bbox: return None
         cropped = img.crop(bbox)
         max_w, max_h = STAMP_SIZE[0] - (MARGIN * 2), STAMP_SIZE[1] - (MARGIN * 2)
         cropped.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-
         canvas = Image.new("RGBA", STAMP_SIZE, (0,0,0,0))
         offset = ((STAMP_SIZE[0] - cropped.width) // 2, (STAMP_SIZE[1] - cropped.height) // 2)
         canvas.paste(cropped, offset)
         return canvas
-    except Exception as e:
+    except:
         return None
 
-# --- 6. メイン処理 ---
-uploaded_files = st.file_uploader(
-    "画像をアップロード", 
-    type=["png", "jpg", "jpeg", "webp"], 
-    accept_multiple_files=True
-)
-
+# --- 8. メイン処理 ---
 if uploaded_files:
     st.success(f"✅ {len(uploaded_files)}枚受け取りました")
     if st.button("🚀 一括変換＆ダウンロード準備"):
@@ -166,7 +145,6 @@ if uploaded_files:
                 for root, _, filenames in os.walk(OUTPUT_DIR):
                     for filename in filenames:
                         zf.write(os.path.join(root, filename), filename)
-            
             st.download_button(
                 label="🎁 完成ファイルを保存",
                 data=zip_buffer.getvalue(),
@@ -174,5 +152,4 @@ if uploaded_files:
                 mime="application/zip"
             )
 
-# --- 7. フッター ---
 st.markdown('<div class="credit">武術創造 DIY・AI研究所</div>', unsafe_allow_html=True)
