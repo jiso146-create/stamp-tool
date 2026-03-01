@@ -49,7 +49,7 @@ def st_image_to_base64(img):
 # --- 4. メインヘッダー ---
 LOGO_URL = "http://bsdiyai.com/wp-content/uploads/2026/01/cfa8b3e1fa50b36f2dba85e72feba21e.jpg"
 st.image(LOGO_URL, width=300)
-st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/wp-admin/post.php?post=691&action=edit)")
+st.markdown("### [👉 使い方・最新情報は公式サイトへ](https://ai.bsdiyai.com/)")
 st.title("🎨 スタンプ一括透過")
 
 # --- 5. 【NEW!】画像アップロード（最優先） ---
